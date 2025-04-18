@@ -5,6 +5,7 @@ import { useDebounce } from "@/hooks";
 import { toast } from "sonner";
 import { useStatus } from "@liveblocks/react";
 import { LoaderIcon } from "lucide-react";
+import { useDocumentStore } from "@/store";
 
 interface DocumentInputProps {
   title: string;
@@ -13,26 +14,38 @@ interface DocumentInputProps {
 
 export const DocumentInput = ({ title, id }: DocumentInputProps) => {
   const status = useStatus();
+  const updateDocument = useDocumentStore(state => state.updateDocument);
   const [value, setValue] = useState(title);
   const [isPending, setIsPending] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-
-
   const debounceUpdate = useDebounce((newValue: string) => {
     if (newValue === title) {
       return;
     }
     setIsPending(true);
-   
+    try {
+      updateDocument({ id, title: newValue });
+      setIsPending(false);
+    } catch (error) {
+      toast.error("Failed to update title");
+      setIsPending(false);
+    }
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
-   
+    try {
+      updateDocument({ id, title: value });
+      setIsPending(false);
+      setIsEditing(false);
+    } catch (error) {
+      toast.error("Failed to update title");
+      setIsPending(false);
+    }
   };
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {

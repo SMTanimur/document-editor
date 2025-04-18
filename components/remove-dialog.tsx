@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { toast } from "sonner";
+import { useDocumentStore } from "@/store";
 
 interface RemoveDialogProps {
   documentId: string;
@@ -20,8 +21,9 @@ interface RemoveDialogProps {
 }
 
 export const RemoveDialog = ({ documentId, children }: RemoveDialogProps) => {
-
+  const removeDocument = useDocumentStore(state => state.removeDocument);
   const [isRemoving, setIsRemoving] = React.useState<boolean>(false);
+  
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
@@ -42,15 +44,16 @@ export const RemoveDialog = ({ documentId, children }: RemoveDialogProps) => {
             onClick={(e) => {
               e.stopPropagation();
               setIsRemoving(true);
-              remove({ id: documentId })
-                .catch(() => toast.error("Unauthorized"))
-                .then(() => {
-                  toast.success("Document removed");
-                })
-                .finally(() => {
-                  setIsRemoving(false);
-                  window.location.href = "/";
-                });
+              
+              try {
+                removeDocument({ id: documentId });
+                toast.success("Document removed");
+              } catch (error) {
+                toast.error("Failed to remove document");
+              } finally {
+                setIsRemoving(false);
+                window.location.href = "/";
+              }
             }}
           >
             Delete

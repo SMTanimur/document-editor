@@ -43,6 +43,8 @@ import { toast } from "sonner";
 import { RenameDialog } from "@/components";
 import { RemoveDialog } from "@/components";
 import { DocumentInput } from "../editor/document-input";
+import { useDocumentStore } from "@/store";
+import { Doc } from "@/types";
 
 interface NavbarProps {
   data: Doc<"documents">;
@@ -51,9 +53,7 @@ interface NavbarProps {
 export const Navbar = ({ data }: NavbarProps) => {
   const { editor } = useEditorStore();
   const router = useRouter();
-
-
-
+  const addDocument = useDocumentStore(state => state.addDocument);
 
   const insertTable = ({ rows, cols }: { rows: number; cols: number }) => {
     editor
@@ -99,6 +99,16 @@ export const Navbar = ({ data }: NavbarProps) => {
       type: "text/plain",
     });
     onDownload(blob, `${data.title}.txt`);
+  };
+
+  const onNewDocument = () => {
+    try {
+      const id = addDocument("Untitled Document", "");
+      router.push(`/documents/${id}`);
+      toast.success("New document created");
+    } catch (error) {
+      toast.error("Failed to create new document");
+    }
   };
 
   return (

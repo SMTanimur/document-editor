@@ -10,10 +10,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useDocumentStore } from "@/store";
 
 interface RenameDialogProps {
   documentId: string
@@ -26,27 +26,30 @@ export const RenameDialog = ({
   children,
   initialTitle,
 }: RenameDialogProps) => {
-
+  const updateDocument = useDocumentStore(state => state.updateDocument);
   const [isUpdating, setIsUpdating] = React.useState<boolean>(false);
-
   const [title, setTitle] = React.useState<string>(initialTitle);
   const [open, setOpen] = React.useState<boolean>(false);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsUpdating(true);
-    update({
-      id: documentId,
-      title: title.trim() || "Untitled Document",
-    })
-      .catch(() => {
-        toast.error("Something went wrong");
-        setTitle(initialTitle);
-      })
-      .finally(() => {
-        setIsUpdating(false);
-        setOpen(false);
+    
+    try {
+      const newTitle = title.trim() || "Untitled Document";
+      updateDocument({
+        id: documentId,
+        title: newTitle,
       });
+      setTitle(newTitle);
+      toast.success("Document renamed");
+    } catch (error) {
+      toast.error("Something went wrong");
+      setTitle(initialTitle);
+    } finally {
+      setIsUpdating(false);
+      setOpen(false);
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is installed for unique IDs
+import { Document as DocType } from '@/types';
 
 // Define the type for a single document
 interface Document {
@@ -10,9 +11,13 @@ interface Document {
 
 // Define the state structure for the store
 interface DocumentState {
-  documents: Record<string, Document>; // Using a Record (object map) for easy lookup by ID
+  documents: Record<string, DocType>; // Using a Record (object map) for easy lookup by ID
   currentDocumentId: string | null;
-  addDocument: (title: string, initialContent: string) => void;
+  
+  // Document operations
+  addDocument: (title: string, initialContent: string) => string;
+  updateDocument: (params: { id: string; title: string }) => void;
+  removeDocument: (params: { id: string }) => void;
   setCurrentDocumentId: (id: string | null) => void;
 }
 
@@ -22,19 +27,56 @@ const useDocumentStore = create<DocumentState>(set => ({
   currentDocumentId: null,
 
   addDocument: (title, initialContent) => {
-    const newDocument: Document = {
-      id: uuidv4(), // Generate a unique ID
+    const id = uuidv4();
+    const newDocument: DocType = {
+      _id: id,
       title,
-      initialContent,
+      content: initialContent,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
+    
     set(state => ({
       documents: {
         ...state.documents,
-        [newDocument.id]: newDocument,
+        [id]: newDocument,
       },
-      // Optionally set the new document as the current one
-      // currentDocumentId: newDocument.id
     }));
+    
+    return id;
+  },
+
+  updateDocument: ({ id, title }) => {
+    set(state => {
+      if (!state.documents[id]) {
+        console.warn(`Document with ID "${id}" not found.`);
+        return {};
+      }
+      
+      return {
+        documents: {
+          ...state.documents,
+          [id]: {
+            ...state.documents[id],
+            title,
+            updatedAt: new Date(),
+          },
+        },
+      };
+    });
+  },
+
+  removeDocument: ({ id }) => {
+    set(state => {
+      const newDocuments = { ...state.documents };
+      delete newDocuments[id];
+      
+      return {
+        documents: newDocuments,
+        // Reset current document if we're deleting the current one
+        currentDocumentId: state.currentDocumentId === id ? null : state.currentDocumentId,
+      };
+    });
   },
 
   setCurrentDocumentId: id => {
