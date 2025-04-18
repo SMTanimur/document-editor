@@ -35,13 +35,13 @@ import {
   Undo2Icon,
 } from "lucide-react";
 import { BsFilePdf } from "react-icons/bs";
-import { useEditorStore } from "@/store/use-editor-store";
+import { useEditorStore } from "@/store";
 
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { RenameDialog } from "@/components";
-import { RemoveDialog } from "@/components";
+import { RenameDialog } from "../rename-dialog";
+import { RemoveDialog } from "../remove-dialog";
 import { DocumentInput } from "../editor/document-input";
 import { useDocumentStore } from "@/store";
 import { Doc } from "@/types";

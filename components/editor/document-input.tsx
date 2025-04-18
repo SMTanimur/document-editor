@@ -1,9 +1,7 @@
-import React, { useRef, useState } from "react";
-import { BsCloudCheck, BsCloudSlash } from "react-icons/bs";
+import React, { useRef, useState, useEffect } from "react";
 
 import { useDebounce } from "@/hooks";
 import { toast } from "sonner";
-import { useStatus } from "@liveblocks/react";
 import { LoaderIcon } from "lucide-react";
 import { useDocumentStore } from "@/store";
 
@@ -13,7 +11,6 @@ interface DocumentInputProps {
 }
 
 export const DocumentInput = ({ title, id }: DocumentInputProps) => {
-  const status = useStatus();
   const updateDocument = useDocumentStore(state => state.updateDocument);
   const [value, setValue] = useState(title);
   const [isPending, setIsPending] = useState(false);
@@ -21,30 +18,60 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!isEditing && title !== value) {
+      setValue(title);
+    }
+  }, [title, isEditing, value]);
+
   const debounceUpdate = useDebounce((newValue: string) => {
-    if (newValue === title) {
+    if (newValue === title || !newValue.trim()) {
+      if (!isEditing) {
+        setValue(title);
+      }
       return;
     }
     setIsPending(true);
     try {
-      updateDocument({ id, title: newValue });
-      setIsPending(false);
+      const titleToUpdate = newValue.trim() || "Untitled Document";
+      updateDocument({ id, title: titleToUpdate });
     } catch (error) {
       toast.error("Failed to update title");
+      setValue(title);
       setIsPending(false);
+    } finally {
+      setTimeout(() => setIsPending(false), 300);
     }
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const newValue = value.trim();
+    if (newValue === title || !newValue) {
+      setIsEditing(false);
+      if (!newValue) setValue(title);
+      return;
+    }
     setIsPending(true);
     try {
-      updateDocument({ id, title: value });
-      setIsPending(false);
+      const titleToUpdate = newValue || "Untitled Document";
+      updateDocument({ id, title: titleToUpdate });
       setIsEditing(false);
     } catch (error) {
       toast.error("Failed to update title");
       setIsPending(false);
+    } finally {
+      setTimeout(() => setIsPending(false), 300);
+    }
+  };
+
+  const handleBlur = () => {
+    const newValue = value.trim();
+    if (newValue !== title && newValue) {
+      handleSubmit(new Event('submit', { cancelable: true }) as any);
+    } else {
+      if (!newValue) setValue(title);
+      setIsEditing(false);
     }
   };
 
@@ -54,9 +81,7 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
     debounceUpdate(newValue);
   };
 
-  const showLoader =
-    isPending || status === "connecting" || status === "reconnecting";
-  const showError = status === "disconnected";
+  const showLoader = isPending;
 
   return (
     <div className="flex items-center gap-2">
@@ -69,8 +94,9 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
             ref={inputRef}
             value={value}
             onChange={onChange}
-            onBlur={() => setIsEditing(false)}
+            onBlur={handleBlur}
             className="absolute inset-0 text-lg text-black px-1.5 bg-transparent truncate"
+            autoFocus
           />
         </form>
       ) : (
@@ -79,16 +105,13 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
             setIsEditing(true);
             setTimeout(() => {
               inputRef.current?.focus();
+              inputRef.current?.select();
             }, 0);
           }}
           className="text-lg px-1.5 cursor-pointer truncate"
         >
           {title}
         </span>
-      )}
-      {showError && <BsCloudSlash className="text-red-500 size-4" />}
-      {!showError && !showLoader && (
-        <BsCloudCheck className="text-green-500 size-4" />
       )}
       {showLoader && (
         <LoaderIcon className="size-4 animate-spin text-muted-foreground" />

@@ -5,6 +5,7 @@ import { Editor } from "../editor";
 import { Toolbar } from "./toolbar";
 import { Doc } from "@/types";
 
+
 interface DocumentProps {
   document: Doc<"documents">;
 }
@@ -15,6 +16,7 @@ export const Document = ({ document }: DocumentProps) => {
   }
 
   return (
+
     <div className="min-h-screen bg-[#FAFBFD]">
       <div className="flex flex-col px-4 pt-2 gap-2 fixed top-0 left-0 right-0 z-10 bg-[#FAFBFD] print:hidden">
         <Navbar data={document} />
@@ -24,5 +26,6 @@ export const Document = ({ document }: DocumentProps) => {
         <Editor initialContent={document.content} />
       </div>
     </div>
+ 
   );
 };

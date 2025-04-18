@@ -3,15 +3,14 @@
 import React from "react";
 import { useDocumentStore } from "@/store";
 import { Document as DocumentComponent } from "@/components/document/document";
-import { Doc } from "@/types";
+import { useParams } from "next/navigation";
 
-interface DocumentIdPageProps {
-  params: { documentId: string };
-}
 
-const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
-  const { documentId } = params;
-  const document = useDocumentStore(state => state.documents[documentId]);
+
+
+const DocumentIdPage = () => {
+  const { documentId } = useParams();
+  const document = useDocumentStore(state => state.documents[documentId as string]);
 
   if (!document) {
     console.error("Document not found in store:", documentId);
@@ -20,5 +19,6 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
 
   return <DocumentComponent document={document} />;
 };
+
 
 export default DocumentIdPage;
