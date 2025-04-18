@@ -35,33 +35,32 @@ async function extractTextFromPDF(file: File): Promise<string> {
 }
 
 /**
- * Extracts text content from a DOCX file.
- * Note: Mammoth extracts content as HTML. This function extracts text from that HTML.
- *       For preserving formatting, you might want to use the raw HTML output.
+ * Extracts content from a DOCX file as HTML.
+ * Note: This attempts to preserve basic formatting.
  * @param file The DOCX file object.
- * @returns A promise that resolves with the extracted text content.
+ * @returns A promise that resolves with the extracted HTML content.
  */
-async function extractTextFromDocx(file: File): Promise<string> {
+async function extractHTMLFromDocx(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const result = await mammoth.extractRawText({ arrayBuffer });
-  // const result = await mammoth.convertToHtml({ arrayBuffer }); // Use this for HTML
-  return result.value; // The raw text
-  // return result.value; // The HTML string - if using convertToHtml
+  const result = await mammoth.convertToHtml({ arrayBuffer });
+  return result.value; // The HTML string
 }
 
 /**
- * Extracts text from various file types (PDF, DOCX, TXT).
+ * Extracts text/HTML from various file types (PDF, DOCX, TXT).
  * @param file The file object.
- * @returns A promise that resolves with the extracted text content.
+ * @returns A promise that resolves with the extracted text or HTML content.
  */
 export async function extractTextFromFile(file: File): Promise<string> {
   const fileType = file.type;
   const fileName = file.name.toLowerCase();
 
   if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+    console.warn("Importing PDF as plain text. Formatting will be lost.");
     return extractTextFromPDF(file);
   } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
-    return extractTextFromDocx(file);
+    console.info("Importing DOCX as HTML. Basic formatting may be preserved.");
+    return extractHTMLFromDocx(file);
   } else if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
     return file.text();
   } else {

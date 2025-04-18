@@ -116,19 +116,20 @@ export const Navbar = ({ data }: NavbarProps) => {
     toast.info(`Importing ${file.name}...`);
 
     try {
-      const textContent = await extractTextFromFile(file);
+      const textOrHtmlContent = await extractTextFromFile(file);
 
+      // Ask user how to import the content
       const replaceContent = window.confirm(
-        `Imported content from "${file.name}".\n\nPress OK to replace the current content, or Cancel to append.`
+        `Imported content from "${file.name}".\n(Note: Formatting may be simplified or lost, especially for PDFs.)\n\nPress OK to replace the current content, or Cancel to append.`
       );
 
       if (replaceContent) {
-        editor.chain().clearContent().setContent(textContent, true).run();
+        editor.chain().clearContent().setContent(textOrHtmlContent, true).run(); // Pass HTML/Text
         toast.success(`Replaced content with ${file.name}.`);
       } else {
-        editor.commands.insertContent(textContent, {
+        editor.commands.insertContent(textOrHtmlContent, { // Pass HTML/Text
           parseOptions: { preserveWhitespace: 'full' }
-        });
+        }); 
         toast.success(`Appended content from ${file.name}.`);
       }
 
