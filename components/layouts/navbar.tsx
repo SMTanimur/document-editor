@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useRef, ChangeEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -33,6 +33,7 @@ import {
   TrashIcon,
   UnderlineIcon,
   Undo2Icon,
+  UploadIcon,
 } from "lucide-react";
 import { BsFilePdf } from "react-icons/bs";
 import { useEditorStore } from "@/store";
@@ -45,6 +46,7 @@ import { RemoveDialog } from "../remove-dialog";
 import { DocumentInput } from "../editor/document-input";
 import { useDocumentStore } from "@/store";
 import { Doc } from "@/types";
+import { extractTextFromFile } from "@/lib/file-parser";
 
 interface NavbarProps {
   data: Doc<"documents">;
@@ -54,6 +56,7 @@ export const Navbar = ({ data }: NavbarProps) => {
   const { editor } = useEditorStore();
   const router = useRouter();
   const addDocument = useDocumentStore(state => state.addDocument);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const insertTable = ({ rows, cols }: { rows: number; cols: number }) => {
     editor
@@ -69,6 +72,7 @@ export const Navbar = ({ data }: NavbarProps) => {
     a.href = url;
     a.download = filename;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   const onSaveJSON = () => {
@@ -101,6 +105,43 @@ export const Navbar = ({ data }: NavbarProps) => {
     onDownload(blob, `${data.title}.txt`);
   };
 
+  const handleFileImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !editor) return;
+
+    toast.info(`Importing ${file.name}...`);
+
+    try {
+      const textContent = await extractTextFromFile(file);
+
+      const replaceContent = window.confirm(
+        `Imported content from "${file.name}".\n\nPress OK to replace the current content, or Cancel to append.`
+      );
+
+      if (replaceContent) {
+        editor.chain().clearContent().setContent(textContent, true).run();
+        toast.success(`Replaced content with ${file.name}.`);
+      } else {
+        editor.commands.insertContent(textContent, {
+          parseOptions: { preserveWhitespace: 'full' }
+        });
+        toast.success(`Appended content from ${file.name}.`);
+      }
+
+    } catch (error) {
+      console.error("Error importing file:", error);
+      toast.error(`Failed to import ${file.name}. See console for details.`);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const onNewDocument = () => {
     try {
       const id = addDocument("Untitled Document", "");
@@ -113,6 +154,13 @@ export const Navbar = ({ data }: NavbarProps) => {
 
   return (
     <nav className="flex items-center justify-between">
+      <input 
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".pdf,.docx,.txt"
+        className=""
+      />
       <div className="flex gap-2 items-center">
         <Link href={"/"}>
           <Image src="/logo.svg" alt="Logo" width={36} height={36} />
@@ -150,6 +198,10 @@ export const Navbar = ({ data }: NavbarProps) => {
                       </MenubarItem>
                     </MenubarSubContent>
                   </MenubarSub>
+                  <MenubarItem onClick={handleFileImportClick}>
+                    <UploadIcon className="size-4 mr-2" />
+                    Import Document
+                  </MenubarItem>
                   <MenubarItem onClick={onNewDocument}>
                     <FilePlusIcon className="size-4 mr-2" />
                     New Document
