@@ -1,15 +1,40 @@
 "use client";
 import React from "react";
-
-import { useSearchParam } from "@/hooks/use-search-param";
+import { useSearchParam } from "@/hooks";
 import { Navbar } from "./_components/navbar";
 import { TemplateGallery } from "./_components/template-gallery";
 import { DocumentsTable } from "./_components/documents-table";
-
+import { useDocumentStore } from "@/store";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const Home = () => {
   const [search] = useSearchParam();
+  const router = useRouter();
+  const { documents, addDocument } = useDocumentStore(state => ({ 
+    documents: Object.values(state.documents), 
+    addDocument: state.addDocument 
+  }));
 
+  // Filter documents based on search query
+  const filteredDocuments = documents.filter(doc => 
+    doc.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // For now, display all filtered documents without pagination
+  const results = filteredDocuments;
+  const status: "ReachedEnd" = "ReachedEnd"; // Placeholder status
+  const loadMore = () => {}; // Placeholder function
+
+  const onCreate = () => {
+    try {
+      const id = addDocument("Untitled Document", "");
+      router.push(`/documents/${id}`);
+      toast.success("New document created");
+    } catch (error) {
+      toast.error("Failed to create document");
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -27,13 +52,15 @@ const Home = () => {
       
       {/* Floating circular div in bottom right corner */}
       <div className="fixed bottom-6 right-6 z-50">
-        <button className="
-          w-14 h-14 rounded-full
-          bg-blue-600 hover:bg-blue-700
-          flex items-center justify-center
-          shadow-lg hover:shadow-xl
-          transition-all duration-200
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50
+        <button 
+          onClick={onCreate}
+          className="
+            w-14 h-14 rounded-full
+            bg-blue-600 hover:bg-blue-700
+            flex items-center justify-center
+            shadow-lg hover:shadow-xl
+            transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50
         ">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
