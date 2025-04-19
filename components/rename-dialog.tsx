@@ -43,6 +43,7 @@ export const RenameDialog = ({
       });
       setTitle(newTitle);
       toast.success("Document renamed");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error("Something went wrong");
       setTitle(initialTitle);

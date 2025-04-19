@@ -22,6 +22,7 @@ export const TemplateGallery = () => {
   const create = async ({ title, initialContent }: { title: string, initialContent: string }) => {
     try {
       return addDocument(title, initialContent);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       throw new Error("Failed to create document");
     }

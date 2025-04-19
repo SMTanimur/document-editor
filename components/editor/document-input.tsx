@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useState, useEffect } from "react";
 
 import { useDebounce } from "@/hooks";
@@ -35,6 +37,7 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
     try {
       const titleToUpdate = newValue.trim() || "Untitled Document";
       updateDocument({ id, title: titleToUpdate });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error("Failed to update title");
       setValue(title);
@@ -57,6 +60,7 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
       const titleToUpdate = newValue || "Untitled Document";
       updateDocument({ id, title: titleToUpdate });
       setIsEditing(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error("Failed to update title");
       setIsPending(false);
@@ -68,6 +72,7 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
   const handleBlur = () => {
     const newValue = value.trim();
     if (newValue !== title && newValue) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       handleSubmit(new Event('submit', { cancelable: true }) as any);
     } else {
       if (!newValue) setValue(title);

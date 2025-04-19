@@ -19,6 +19,7 @@ export const Navbar = () => {
       const id = addDocument("Untitled Document", "");
       router.push(`/documents/${id}`);
       toast.success("New document created");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error("Failed to create document");
     }

@@ -28,6 +28,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
     const page = await pdf.getPage(i);
     const text = await page.getTextContent();
     // Join text items, potentially adding spaces or newlines as needed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     textContent += text.items.map((item: any) => item.str).join(' ') + '\n'; 
   }
 
