@@ -30,6 +30,11 @@ interface EditorProps {
 export const Editor = ({ initialContent }: EditorProps) => {
   const { setEditor } = useEditorStore();
 
+  // Define editor class based on desired appearance
+  const EDITOR_PAGE_CLASS = 
+    "prose dark:prose-invert prose-sm sm:prose-base focus:outline-none " +
+    "bg-background rounded-lg p-8 md:p-12 min-h-[800px] shadow-lg border border-border";
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -65,8 +70,7 @@ export const Editor = ({ initialContent }: EditorProps) => {
     content: initialContent,
     editorProps: {
       attributes: {
-        class:
-          "prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none p-4 min-h-[500px] w-full bg-white border border-gray-300",
+        class: EDITOR_PAGE_CLASS,
       },
     },
   });
@@ -90,11 +94,12 @@ export const Editor = ({ initialContent }: EditorProps) => {
   }, [initialContent, editor]);
 
   return (
-    <div className="size-full overflow-x-auto w-[816px] bg-[#F9FBFD] px-4 print:p-0 print:bg-white print:overflow-visible">
-  
-      <div className="flex justify-center py-4 print:py-0 mx-auto  w-full">
-        <EditorContent editor={editor}  className="w-full"/>
-      </div>
+    // Removed the outer wrapper with bg-[#F9FBFD]
+    // The main container div provides padding now (set in document.tsx)
+    // Removed justify-center and specific width, editor will use container width
+    <div className="w-full max-w-4xl mx-auto print:w-full print:max-w-none print:mx-0">
+       {/* Ruler might be added back here if needed */}
+      <EditorContent editor={editor} />
     </div>
   );
 };

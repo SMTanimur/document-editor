@@ -16,16 +16,14 @@ export const Document = ({ document }: DocumentProps) => {
   }
 
   return (
-
-    <div className="min-h-screen bg-[#FAFBFD]">
-      <div className="flex flex-col px-4 pt-2 gap-2 fixed top-0 left-0 right-0 z-10 bg-[#FAFBFD] print:hidden">
+    <div className="min-h-screen bg-neutral-100 dark:bg-neutral-900">
+      <div className="flex flex-col gap-2 fixed top-0 left-0 right-0 z-10 bg-background border-b px-4 py-2 print:hidden">
         <Navbar data={document} />
         <Toolbar />
       </div>
-      <div className="pt-[126px] print:pt-0">
+      <div className="pt-32 md:pt-28 px-4 md:px-8 print:pt-0 print:px-0 pb-12">
         <Editor initialContent={document.content} />
       </div>
     </div>
- 
   );
 };

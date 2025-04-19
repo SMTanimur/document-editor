@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, ChangeEvent } from "react";
+import React, { useRef, ChangeEvent, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -14,8 +14,7 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar";
-
-
+import { Button } from "@/components/ui/button";
 import {
   BoldIcon,
   FileIcon,
@@ -34,11 +33,11 @@ import {
   UnderlineIcon,
   Undo2Icon,
   UploadIcon,
+  SaveIcon,
+  Loader2,
 } from "lucide-react";
 import { BsFilePdf } from "react-icons/bs";
 import { useEditorStore } from "@/store";
-
-
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { RenameDialog } from "../rename-dialog";
@@ -55,8 +54,9 @@ interface NavbarProps {
 export const Navbar = ({ data }: NavbarProps) => {
   const { editor } = useEditorStore();
   const router = useRouter();
-  const addDocument = useDocumentStore(state => state.addDocument);
+  const { addDocument, updateDocumentContent } = useDocumentStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const insertTable = ({ rows, cols }: { rows: number; cols: number }) => {
     editor
@@ -143,6 +143,22 @@ export const Navbar = ({ data }: NavbarProps) => {
     }
   };
 
+  const handleSave = () => {
+    if (!editor || !data?._id) return;
+    
+    setIsSaving(true);
+    try {
+      const contentJson = editor.getJSON();
+      updateDocumentContent({ id: data._id, content: contentJson });
+      toast.success("Document saved");
+    } catch (error) {
+      console.error("Error saving document:", error);
+      toast.error("Failed to save document.");
+    } finally {
+      setTimeout(() => setIsSaving(false), 300);
+    }
+  };
+
   const onNewDocument = () => {
     try {
       const id = addDocument("Untitled Document", "");
@@ -154,13 +170,13 @@ export const Navbar = ({ data }: NavbarProps) => {
   };
 
   return (
-    <nav className="flex items-center justify-between">
+    <nav className="flex items-center justify-between w-full py-1">
       <input 
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
         accept=".pdf,.docx,.txt"
-        className=""
+        className="hidden"
       />
       <div className="flex gap-2 items-center">
         <Link href={"/"}>
@@ -168,183 +184,192 @@ export const Navbar = ({ data }: NavbarProps) => {
         </Link>
         <div className="flex flex-col">
           <DocumentInput title={data.title} id={data._id} />
-          <div className="flex">
-            <Menubar className="border-none bg-transparent shadow-none h-auto p-0">
-              <MenubarMenu>
-                <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted h-auto">
-                  File
-                </MenubarTrigger>
-                <MenubarContent className="print:hidden">
-                  <MenubarSub>
-                    <MenubarSubTrigger>
-                      <FileIcon className="size-4 mr-2" />
-                      Save
-                    </MenubarSubTrigger>
-                    <MenubarSubContent>
-                      <MenubarItem onClick={onSaveJSON}>
-                        <FileJsonIcon className="size-4 mr-2" />
-                        JSON
-                      </MenubarItem>
-                      <MenubarItem onClick={onSaveHTML}>
-                        <GlobeIcon className="size-4 mr-2" />
-                        HTML
-                      </MenubarItem>
-                      <MenubarItem onClick={() => window.print()}>
-                        <BsFilePdf className="size-4 mr-2" />
-                        PDF
-                      </MenubarItem>
-                      <MenubarItem onClick={onSaveText}>
-                        <FileTextIcon className="size-4 mr-2" />
-                        Text
-                      </MenubarItem>
-                    </MenubarSubContent>
-                  </MenubarSub>
-                  <MenubarItem onClick={handleFileImportClick}>
-                    <UploadIcon className="size-4 mr-2" />
-                    Import Document
-                  </MenubarItem>
-                  <MenubarItem onClick={onNewDocument}>
-                    <FilePlusIcon className="size-4 mr-2" />
-                    New Document
-                  </MenubarItem>
-                  <MenubarSeparator />
-                  <RenameDialog documentId={data._id} initialTitle={data.title}>
-                    <MenubarItem
-                      onClick={(e) => e.stopPropagation()}
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      <FilePenIcon className="size-4 mr-2" />
-                      Rename
+          <Menubar className="border-none bg-transparent shadow-none h-auto p-0 mt-0.5">
+            <MenubarMenu>
+              <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted focus:bg-muted data-[state=open]:bg-muted h-auto cursor-pointer">
+                File
+              </MenubarTrigger>
+              <MenubarContent className="print:hidden">
+                <MenubarSub>
+                  <MenubarSubTrigger>
+                    <FileIcon className="size-4 mr-2" />
+                    Save
+                  </MenubarSubTrigger>
+                  <MenubarSubContent>
+                    <MenubarItem onClick={onSaveJSON}>
+                      <FileJsonIcon className="size-4 mr-2" />
+                      JSON
                     </MenubarItem>
-                  </RenameDialog>
-                  <RemoveDialog documentId={data._id}>
-                    <MenubarItem
-                      onClick={(e) => e.stopPropagation()}
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      <TrashIcon className="size-4 mr-2" />
-                      Remove
+                    <MenubarItem onClick={onSaveHTML}>
+                      <GlobeIcon className="size-4 mr-2" />
+                      HTML
                     </MenubarItem>
-                  </RemoveDialog>
-                  <MenubarSeparator />
-                  <MenubarItem onClick={() => window.print()}>
-                    <PrinterIcon className="size-4 mr-2" />
-                    Print <MenubarShortcut>⌘P</MenubarShortcut>
-                  </MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-              <MenubarMenu>
-                <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted h-auto">
-                  Edit
-                </MenubarTrigger>
-                <MenubarContent>
-                  <MenubarItem onClick={() => editor?.chain().undo().run()}>
-                    <Undo2Icon className="size-4 mr-2" />
-                    Undo <MenubarShortcut>⌘Z</MenubarShortcut>
-                  </MenubarItem>
-                  <MenubarItem onClick={() => editor?.chain().redo().run()}>
-                    <Redo2Icon className="size-4 mr-2" />
-                    Redo <MenubarShortcut>⌘Y</MenubarShortcut>
-                  </MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-              <MenubarMenu>
-                <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted h-auto">
-                  Insert
-                </MenubarTrigger>
-                <MenubarContent>
-                  <MenubarSub>
-                    <MenubarSubTrigger>Table</MenubarSubTrigger>
-                    <MenubarSubContent>
-                      <MenubarItem
-                        onClick={() => insertTable({ rows: 1, cols: 1 })}
-                      >
-                        1x1
-                      </MenubarItem>
-                      <MenubarItem
-                        onClick={() => insertTable({ rows: 2, cols: 2 })}
-                      >
-                        2x2
-                      </MenubarItem>
-                      <MenubarItem
-                        onClick={() => insertTable({ rows: 3, cols: 3 })}
-                      >
-                        3x3
-                      </MenubarItem>
-                      <MenubarItem
-                        onClick={() => insertTable({ rows: 4, cols: 4 })}
-                      >
-                        4x4
-                      </MenubarItem>
-                    </MenubarSubContent>
-                  </MenubarSub>
-                </MenubarContent>
-              </MenubarMenu>
-              <MenubarMenu>
-                <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted h-auto">
-                  Format
-                </MenubarTrigger>
-                <MenubarContent>
-                  <MenubarSub>
-                    <MenubarSubTrigger>
-                      <TextIcon className="size-4 mr-2" />
+                    <MenubarItem onClick={() => window.print()}>
+                      <BsFilePdf className="size-4 mr-2" />
+                      PDF
+                    </MenubarItem>
+                    <MenubarItem onClick={onSaveText}>
+                      <FileTextIcon className="size-4 mr-2" />
                       Text
-                    </MenubarSubTrigger>
-                    <MenubarSubContent>
-                      <MenubarItem
-                        onClick={() =>
-                          editor?.chain().focus().toggleBold().run()
-                        }
-                      >
-                        <BoldIcon className="size-4 mr-2" />
-                        Bold
-                        <MenubarShortcut>⌘B</MenubarShortcut>
-                      </MenubarItem>
-                      <MenubarItem
-                        onClick={() =>
-                          editor?.chain().focus().toggleItalic().run()
-                        }
-                      >
-                        <ItalicIcon className="size-4 mr-2" />
-                        Italic
-                        <MenubarShortcut>⌘I</MenubarShortcut>
-                      </MenubarItem>
-                      <MenubarItem
-                        onClick={() =>
-                          editor?.chain().focus().toggleUnderline().run()
-                        }
-                      >
-                        <UnderlineIcon className="size-4 mr-2" />
-                        Underline
-                        <MenubarShortcut>⌘U</MenubarShortcut>
-                      </MenubarItem>
-                      <MenubarItem
-                        onClick={() =>
-                          editor?.chain().focus().toggleStrike().run()
-                        }
-                      >
-                        <StrikethroughIcon className="size-4 mr-2" />
-                        Strikethrough &nbsp;&nbsp;
-                        <MenubarShortcut>⌘⇧S</MenubarShortcut>
-                      </MenubarItem>
-                    </MenubarSubContent>
-                  </MenubarSub>
+                    </MenubarItem>
+                  </MenubarSubContent>
+                </MenubarSub>
+                <MenubarItem onClick={handleFileImportClick}>
+                  <UploadIcon className="size-4 mr-2" />
+                  Import Document
+                </MenubarItem>
+                <MenubarItem onClick={onNewDocument}>
+                  <FilePlusIcon className="size-4 mr-2" />
+                  New Document
+                </MenubarItem>
+                <MenubarSeparator />
+                <RenameDialog documentId={data._id} initialTitle={data.title}>
                   <MenubarItem
-                    onClick={() =>
-                      editor?.chain().focus().unsetAllMarks().run()
-                    }
+                    onClick={(e) => e.stopPropagation()}
+                    onSelect={(e) => e.preventDefault()}
                   >
-                    <RemoveFormattingIcon className="size-4 mr-2" />
-                    Clear Formatting
+                    <FilePenIcon className="size-4 mr-2" />
+                    Rename
                   </MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-            </Menubar>
-          </div>
+                </RenameDialog>
+                <RemoveDialog documentId={data._id}>
+                  <MenubarItem
+                    onClick={(e) => e.stopPropagation()}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <TrashIcon className="size-4 mr-2" />
+                    Remove
+                  </MenubarItem>
+                </RemoveDialog>
+                <MenubarSeparator />
+                <MenubarItem onClick={() => window.print()}>
+                  <PrinterIcon className="size-4 mr-2" />
+                  Print <MenubarShortcut>⌘P</MenubarShortcut>
+                </MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+              <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted focus:bg-muted data-[state=open]:bg-muted h-auto cursor-pointer">
+                Edit
+              </MenubarTrigger>
+              <MenubarContent>
+                <MenubarItem onClick={() => editor?.chain().undo().run()}>
+                  <Undo2Icon className="size-4 mr-2" />
+                  Undo <MenubarShortcut>⌘Z</MenubarShortcut>
+                </MenubarItem>
+                <MenubarItem onClick={() => editor?.chain().redo().run()}>
+                  <Redo2Icon className="size-4 mr-2" />
+                  Redo <MenubarShortcut>⌘Y</MenubarShortcut>
+                </MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+              <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted focus:bg-muted data-[state=open]:bg-muted h-auto cursor-pointer">
+                Insert
+              </MenubarTrigger>
+              <MenubarContent>
+                <MenubarSub>
+                  <MenubarSubTrigger>Table</MenubarSubTrigger>
+                  <MenubarSubContent>
+                    <MenubarItem
+                      onClick={() => insertTable({ rows: 1, cols: 1 })}
+                    >
+                      1x1
+                    </MenubarItem>
+                    <MenubarItem
+                      onClick={() => insertTable({ rows: 2, cols: 2 })}
+                    >
+                      2x2
+                    </MenubarItem>
+                    <MenubarItem
+                      onClick={() => insertTable({ rows: 3, cols: 3 })}
+                    >
+                      3x3
+                    </MenubarItem>
+                    <MenubarItem
+                      onClick={() => insertTable({ rows: 4, cols: 4 })}
+                    >
+                      4x4
+                    </MenubarItem>
+                  </MenubarSubContent>
+                </MenubarSub>
+              </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+              <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted focus:bg-muted data-[state=open]:bg-muted h-auto cursor-pointer">
+                Format
+              </MenubarTrigger>
+              <MenubarContent>
+                <MenubarSub>
+                  <MenubarSubTrigger>
+                    <TextIcon className="size-4 mr-2" />
+                    Text
+                  </MenubarSubTrigger>
+                  <MenubarSubContent>
+                    <MenubarItem
+                      onClick={() =>
+                        editor?.chain().focus().toggleBold().run()
+                      }
+                    >
+                      <BoldIcon className="size-4 mr-2" />
+                      Bold
+                      <MenubarShortcut>⌘B</MenubarShortcut>
+                    </MenubarItem>
+                    <MenubarItem
+                      onClick={() =>
+                        editor?.chain().focus().toggleItalic().run()
+                      }
+                    >
+                      <ItalicIcon className="size-4 mr-2" />
+                      Italic
+                      <MenubarShortcut>⌘I</MenubarShortcut>
+                    </MenubarItem>
+                    <MenubarItem
+                      onClick={() =>
+                        editor?.chain().focus().toggleUnderline().run()
+                      }
+                    >
+                      <UnderlineIcon className="size-4 mr-2" />
+                      Underline
+                      <MenubarShortcut>⌘U</MenubarShortcut>
+                    </MenubarItem>
+                    <MenubarItem
+                      onClick={() =>
+                        editor?.chain().focus().toggleStrike().run()
+                      }
+                    >
+                      <StrikethroughIcon className="size-4 mr-2" />
+                      Strikethrough &nbsp;&nbsp;
+                      <MenubarShortcut>⌘⇧S</MenubarShortcut>
+                    </MenubarItem>
+                  </MenubarSubContent>
+                </MenubarSub>
+                <MenubarItem
+                  onClick={() =>
+                    editor?.chain().focus().unsetAllMarks().run()
+                  }
+                >
+                  <RemoveFormattingIcon className="size-4 mr-2" />
+                  Clear Formatting
+                </MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+          </Menubar>
         </div>
       </div>
-      <div className="flex gap-3 items-center pl-6">
-        
+      <div className="flex items-center gap-2 pl-4">
+        <Button 
+          onClick={handleSave} 
+          size="sm" 
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <Loader2 className="size-4 mr-2 animate-spin" />
+          ) : (
+            <SaveIcon className="size-4 mr-2" />
+          )}
+          {isSaving ? "Saving..." : "Save"}
+        </Button>
       </div>
     </nav>
   );

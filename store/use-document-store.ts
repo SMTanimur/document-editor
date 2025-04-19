@@ -16,8 +16,9 @@ interface DocumentState {
   currentDocumentId: string | null;
   
   // Document operations
-  addDocument: (title: string, initialContent: string) => string;
+  addDocument: (title: string, initialContent: any) => string; // Allow any for initialContent
   updateDocument: (params: { id: string; title: string }) => void;
+  updateDocumentContent: (params: { id: string; content: any }) => void; // Added for content updates
   removeDocument: (params: { id: string }) => void;
   setCurrentDocumentId: (id: string | null) => void;
 }
@@ -52,7 +53,7 @@ const useDocumentStore = create<DocumentState>()(
       updateDocument: ({ id, title }) => {
         set(state => {
           if (!state.documents[id]) {
-            console.warn(`Document with ID "${id}" not found.`);
+            console.warn(`Document with ID "${id}" not found for title update.`);
             return {};
           }
           
@@ -62,6 +63,27 @@ const useDocumentStore = create<DocumentState>()(
               [id]: {
                 ...state.documents[id],
                 title,
+                updatedAt: new Date(),
+              },
+            },
+          };
+        });
+      },
+
+      // Function to update only the content
+      updateDocumentContent: ({ id, content }) => {
+        set(state => {
+           if (!state.documents[id]) {
+            console.warn(`Document with ID "${id}" not found for content update.`);
+            return {};
+          }
+
+          return {
+            documents: {
+              ...state.documents,
+              [id]: {
+                ...state.documents[id],
+                content: content,
                 updatedAt: new Date(),
               },
             },
