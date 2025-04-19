@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState, DragEvent } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TaskList } from "@tiptap/extension-task-list";
@@ -21,7 +21,9 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { FontSize } from "@/extensions/font-size";
 import { LineHeightExtension } from "@/extensions/line-height";
 import Placeholder from "@tiptap/extension-placeholder";
-
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { extractTextFromFile } from "@/lib/file-parser";
 
 interface EditorProps {
   initialContent?: any;
@@ -29,18 +31,21 @@ interface EditorProps {
 
 export const Editor = ({ initialContent }: EditorProps) => {
   const { setEditor } = useEditorStore();
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  // Define editor class based on desired appearance
-  const EDITOR_PAGE_CLASS = 
-    "prose dark:prose-invert prose-sm sm:prose-base focus:outline-none " +
-    "bg-background rounded-lg p-8 md:p-12 min-h-[800px] shadow-lg border border-border";
+  // Define editor class based on desired appearance and drag state
+  const EDITOR_PAGE_CLASS = cn(
+    "prose dark:prose-invert prose-sm sm:prose-base focus:outline-none ",
+    "bg-background rounded-lg p-8 md:p-12 min-h-[800px] shadow-lg border border-border transition-colors duration-200",
+    isDraggingOver ? "border-primary border-dashed border-2" : "border-border"
+  );
 
-  const editor = useEditor({
+  const localEditor = useEditor({
     extensions: [
       StarterKit.configure({
       }),
       Placeholder.configure({
-        placeholder: "Start typing...",
+        placeholder: "Start typing or drop a file (.pdf, .docx, .txt)...",
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -72,34 +77,89 @@ export const Editor = ({ initialContent }: EditorProps) => {
       attributes: {
         class: EDITOR_PAGE_CLASS,
       },
+      handleDOMEvents: {
+        drop: (view, event) => {
+          event.preventDefault();
+          setIsDraggingOver(false);
+
+          if (!event.dataTransfer) {
+            return false;
+          }
+
+          const files = event.dataTransfer.files;
+          if (files.length === 0 || !localEditor) {
+            return false;
+          }
+
+          const file = files[0];
+          if (!/pdf|vnd.openxmlformats-officedocument.wordprocessingml.document|plain/i.test(file.type) && !/\.docx$|\.pdf$|\.txt$/i.test(file.name)) {
+            toast.error("Unsupported file type. Please drop PDF, DOCX, or TXT.");
+            return true;
+          }
+
+          toast.info(`Importing ${file.name} via drop...`);
+          extractTextFromFile(file)
+            .then(textOrHtmlContent => {
+              if (!localEditor) return;
+              const replaceContent = window.confirm(
+                `Dropped "${file.name}".
+(Note: Formatting may be simplified or lost, especially for PDFs.)
+
+Press OK to replace the current content, or Cancel to append.`
+              );
+
+              if (replaceContent) {
+                localEditor.chain().clearContent().setContent(textOrHtmlContent, true).focus().run();
+                toast.success(`Replaced content with ${file.name}.`);
+              } else {
+                localEditor.chain().focus().insertContent(textOrHtmlContent, {
+                  parseOptions: { preserveWhitespace: 'full' }
+                }).run();
+                toast.success(`Appended content from ${file.name}.`);
+              }
+            })
+            .catch(error => {
+              console.error("Error importing dropped file:", error);
+              toast.error(`Failed to import ${file.name}. See console.`);
+            });
+
+          return true;
+        },
+        dragover: (view, event) => {
+          event.preventDefault();
+          setIsDraggingOver(true);
+          return true;
+        },
+        dragleave: (view, event) => {
+          setIsDraggingOver(false);
+          return true;
+        },
+      },
     },
   });
 
+  const { setEditor: setStoreEditor } = useEditorStore();
   useEffect(() => {
-    setEditor(editor);
-    return () => setEditor(null);
-  }, [editor, setEditor]);
+    setStoreEditor(localEditor);
+    return () => setStoreEditor(null);
+  }, [localEditor, setStoreEditor]);
 
   useEffect(() => {
-    if (editor && initialContent && editor.isEditable) {
-      const currentContentJSON = JSON.stringify(editor.getJSON());
+    if (localEditor && initialContent && localEditor.isEditable) {
+      const currentContentJSON = JSON.stringify(localEditor.getJSON());
       const initialContentJSON = JSON.stringify(initialContent);
 
       if (currentContentJSON !== initialContentJSON) {
-          setTimeout(() => {
-            editor.commands.setContent(initialContent, false); 
-          }, 0);
+        setTimeout(() => {
+          localEditor.commands.setContent(initialContent, false);
+        }, 0);
       }
     }
-  }, [initialContent, editor]);
+  }, [initialContent, localEditor]);
 
   return (
-    // Removed the outer wrapper with bg-[#F9FBFD]
-    // The main container div provides padding now (set in document.tsx)
-    // Removed justify-center and specific width, editor will use container width
     <div className="w-full max-w-4xl mx-auto print:w-full print:max-w-none print:mx-0">
-       {/* Ruler might be added back here if needed */}
-      <EditorContent editor={editor} />
+      <EditorContent editor={localEditor} />
     </div>
   );
 };
