@@ -48,6 +48,7 @@ export const RemoveDialog = ({ documentId, children }: RemoveDialogProps) => {
               try {
                 removeDocument({ id: documentId });
                 toast.success("Document removed");
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               } catch (error) {
                 toast.error("Failed to remove document");
               } finally {
