@@ -2,57 +2,52 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React from "react";
-import { useSearchParam } from "@/hooks";
 import { Navbar } from "./_components/navbar";
 import { TemplateGallery } from "./_components/template-gallery";
 import { DocumentsTable } from "./_components/documents-table";
-import { useDocumentStore } from "@/store";
+import { useDocumentStore, useSearchStore } from "@/store";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 const Home = () => {
-  const [search] = useSearchParam();
   const router = useRouter();
-  const { addDocument } = useDocumentStore();
+  const { documents, addDocument } = useDocumentStore(state => ({ 
+    documents: Object.values(state.documents), 
+    addDocument: state.addDocument 
+  }));
+  const searchQuery = useSearchStore(state => state.searchQuery);
 
-  const { documents } = useDocumentStore();
-
-  // Filter documents based on search query
-  const filteredDocuments = Object.values(documents).filter(doc => 
-    doc.title.toLowerCase().includes(search.toLowerCase())
+  const filteredDocuments = documents.filter(doc => 
+    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // For now, display all filtered documents without pagination
-  const results = filteredDocuments;
-  // eslint-disable-next-line @typescript-eslint/prefer-as-const
-  const status: "ReachedEnd" = "ReachedEnd"; // Placeholder status
-  const loadMore = () => {}; // Placeholder function
+  const status = "ReachedEnd" as const;
+  const loadMore = () => {};
 
   const onCreate = () => {
     try {
       const id = addDocument("Untitled Document", "");
       router.push(`/documents/${id}`);
       toast.success("New document created");
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Failed to create document");
     }
   };
 
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="fixed top-0 left-0 right-0 z-10 h-16 bg-white p-4">
+      <div className="fixed top-0 left-0 right-0 z-10 h-16 bg-background border-b p-4 print:hidden">
         <Navbar />
       </div>
       <div className="mt-16">
         <TemplateGallery />
         <DocumentsTable
-          documents={results}
+          documents={filteredDocuments}
           loadMore={loadMore}
           status={status}
         />
       </div>
       
-      {/* Floating circular div in bottom right corner */}
       <div className="fixed bottom-6 right-6 z-50">
         <button 
           onClick={onCreate}
