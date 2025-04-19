@@ -11,13 +11,10 @@ import { toast } from "sonner";
 
 const Home = () => {
   const router = useRouter();
-  const { documents, addDocument } = useDocumentStore(state => ({ 
-    documents: Object.values(state.documents), 
-    addDocument: state.addDocument 
-  }));
+  const { documents, addDocument } = useDocumentStore();
   const searchQuery = useSearchStore(state => state.searchQuery);
 
-  const filteredDocuments = documents.filter(doc => 
+  const filteredDocuments = Object.values(documents).filter(doc => 
     doc.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
